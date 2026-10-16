@@ -1,0 +1,57 @@
+name: Neon City VIP 3D Windows Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install Dependencies
+        run: python -m pip install panda3d pyinstaller
+
+      - name: Check Python Syntax
+        run: python -m py_compile neon_city_3d_vip.py
+
+      - name: Build Windows EXE
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name NeonCityVIP3D --collect-all panda3d neon_city_3d_vip.py
+
+      - name: Verify EXE
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/NeonCityVIP3D/NeonCityVIP3D.exe")) {
+            throw "Build failed: EXE file was not generated."
+          }
+
+      - name: Create ZIP Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/NeonCityVIP3D/*" -DestinationPath "NeonCityVIP3D-Windows.zip" -Force
+
+      - name: Upload Windows Game
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neon-City-VIP-3D-Windows
+          path: NeonCityVIP3D-Windows.zip
+          if-no-files-found: error
+          retention-days: 14
